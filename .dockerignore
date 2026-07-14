@@ -1,0 +1,14 @@
+node_modules
+apps/*/node_modules
+apps/*/dist
+dist
+.angular
+.npm-cache
+.git
+.codex
+.agents
+.kiro
+.env
+*.log
+backups
+

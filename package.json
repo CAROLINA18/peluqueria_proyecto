@@ -1,0 +1,60 @@
+{
+  "name": "lina-quirama-beauty-salon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.11.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -n API,WEB -c magenta,cyan \"npm run dev -w @lq/api\" \"npm start -w @lq/web\"",
+    "build": "npm run build -w @lq/web && npm run build -w @lq/api",
+    "start": "npm run start -w @lq/api",
+    "test": "npm run test -w @lq/api && npm run test -w @lq/web",
+    "lint": "npm run typecheck -w @lq/api && npm run build -w @lq/web -- --configuration development",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:up": "docker compose -f compose.yaml -f compose.dev.yaml up -d db",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app",
+    "backup": "powershell -ExecutionPolicy Bypass -File scripts/backup.ps1",
+    "restore": "powershell -ExecutionPolicy Bypass -File scripts/restore.ps1",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@angular/animations": "21.2.18",
+    "@angular/cdk": "21.2.14",
+    "@angular/common": "21.2.18",
+    "@angular/compiler": "21.2.18",
+    "@angular/core": "21.2.18",
+    "@angular/forms": "21.2.18",
+    "@angular/material": "21.2.14",
+    "@angular/platform-browser": "21.2.18",
+    "@angular/router": "21.2.18",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1",
+    "zone.js": "0.16.2"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@angular/build": "21.2.19",
+    "@angular/cli": "21.2.19",
+    "@angular/compiler-cli": "21.2.18",
+    "@types/node": "24.10.1",
+    "concurrently": "9.2.1",
+    "prisma": "6.19.3",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3"
+  }
+}

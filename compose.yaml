@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mysql:8.4.6
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lq_beauty}
+      MYSQL_USER: ${MYSQL_USER:-lq_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lq_local_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-lq_local_root_password}
+      TZ: Europe/Brussels
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-lq_local_root_password}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks: [beauty]
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mysql://${MYSQL_USER:-lq_app}:${MYSQL_PASSWORD:-lq_local_password}@db:3306/${MYSQL_DATABASE:-lq_beauty}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace-this-access-secret-before-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace-this-refresh-secret-before-production}
+      APP_TIMEZONE: Europe/Brussels
+      APP_CURRENCY: EUR
+      APP_DEFAULT_LOCALE: es
+      APP_BUSINESS_NAME: Lina Quirama Beauty Salon
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@linaquirama.local}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-ChangeMe123!}
+      WEB_DIST_PATH: /app/apps/web/dist/lq-beauty/browser
+    ports:
+      - "${APP_PORT:-8080}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [beauty]
+
+volumes:
+  mysql_data:
+
+networks:
+  beauty:
+    driver: bridge
