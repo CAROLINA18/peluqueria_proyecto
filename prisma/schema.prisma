@@ -31,6 +31,8 @@ enum Locale {
 model User {
   id                 String       @id @default(uuid()) @db.Char(36)
   name               String       @db.VarChar(120)
+  username           String       @db.VarChar(80)
+  normalizedUsername String       @unique @map("normalized_username") @db.VarChar(80)
   email              String       @db.VarChar(254)
   normalizedEmail    String       @unique @map("normalized_email") @db.VarChar(254)
   passwordHash       String       @map("password_hash") @db.VarChar(255)

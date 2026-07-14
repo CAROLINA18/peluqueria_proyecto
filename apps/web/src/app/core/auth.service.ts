@@ -12,11 +12,18 @@ export class AuthService {
   readonly user = signal<User | null>(null);
   readonly accessToken = signal<string | null>(null);
 
-  login(email: string, password: string) {
-    return this.http.post<{ accessToken: string; user: User }>('/api/v1/auth/login', { email, password }, { withCredentials: true }).pipe(tap((result) => this.accept(result)));
+  login(username: string, password: string) {
+    return this.http.post<{ accessToken: string; user: User }>('/api/v1/auth/login', { username, password }, { withCredentials: true }).pipe(tap((result) => this.accept(result)));
   }
   ensureSession() {
     if (this.user() && this.accessToken()) return of(true);
+    // The access token intentionally lives only in memory. This non-sensitive
+    // hint avoids a guaranteed 401 on the first visit while preserving refresh
+    // after a page reload for users who actually have a server session.
+    if (!document.cookie.split(';').some((cookie) => cookie.trim() === 'lq_session_hint=1')) {
+      this.clear();
+      return of(false);
+    }
     if (!this.refreshRequest) {
       this.refreshRequest = this.http.post<{ accessToken: string; user: User }>('/api/v1/auth/refresh', {}, { withCredentials: true }).pipe(
         tap((result) => this.accept(result)), map(() => true), catchError(() => { this.clear(); return of(false); }), shareReplay(1),

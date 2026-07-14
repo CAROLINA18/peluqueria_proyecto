@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "ng serve --proxy-config apps/web/proxy.conf.json",
-    "build": "ng build",
-    "test": "ng build --configuration development"
+    "start": "cd ../.. && ng serve lq-beauty --proxy-config apps/web/proxy.conf.json",
+    "build": "cd ../.. && ng build lq-beauty",
+    "test": "cd ../.. && ng build lq-beauty --configuration development"
   },
   "dependencies": {
     "@angular/animations": "21.2.18",

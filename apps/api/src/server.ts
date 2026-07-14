@@ -18,9 +18,39 @@ import { usersRouter } from './modules/users/routes.js';
 
 const app = express();
 app.disable('x-powered-by');
+if (isProduction) app.set('trust proxy', 1);
 app.use(requestContext);
-app.use(helmet({ ...(isProduction ? {} : { contentSecurityPolicy: false }), crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({
+  ...(isProduction ? {
+    contentSecurityPolicy: {
+      directives: {
+        scriptSrcAttr: ["'none'", "'report-sample'"],
+        reportUri: ['/api/v1/security/csp-report'],
+      },
+    },
+  } : { contentSecurityPolicy: false }),
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors({ origin: isProduction ? false : config.CORS_ORIGIN, credentials: true }));
+app.post('/api/v1/security/csp-report', express.json({
+  limit: '32kb',
+  type: ['application/csp-report', 'application/reports+json', 'application/json'],
+}), (req, res) => {
+  const raw = Array.isArray(req.body) ? req.body[0]?.body : req.body?.['csp-report'] ?? req.body;
+  const report = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  console.warn(JSON.stringify({
+    level: 'warn',
+    event: 'CSP_VIOLATION',
+    requestId: req.requestId,
+    directive: report['effective-directive'] ?? report.effectiveDirective,
+    blockedUri: report['blocked-uri'] ?? report.blockedURL,
+    sourceFile: report['source-file'] ?? report.sourceFile,
+    line: report['line-number'] ?? report.lineNumber,
+    column: report['column-number'] ?? report.columnNumber,
+    sample: report['script-sample'] ?? report.sample,
+  }));
+  res.status(204).end();
+});
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 

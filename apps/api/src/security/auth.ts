@@ -8,6 +8,7 @@ import { AppError } from '../http/errors.js';
 
 type TokenPayload = { sub: string; role: Role; version: number; sid?: string };
 const refreshCookie = 'lq_refresh';
+const sessionHintCookie = 'lq_session_hint';
 
 export function createAccessToken(user: Pick<User, 'id' | 'role' | 'tokenVersion'>) {
   return jwt.sign(
@@ -58,10 +59,18 @@ export function setRefreshCookie(res: Response, token: string) {
     path: '/api/v1/auth',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+  res.cookie(sessionHintCookie, '1', {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
 
 export function clearRefreshCookie(res: Response) {
   res.clearCookie(refreshCookie, { httpOnly: true, secure: isProduction, sameSite: 'strict', path: '/api/v1/auth' });
+  res.clearCookie(sessionHintCookie, { httpOnly: false, secure: isProduction, sameSite: 'strict', path: '/' });
 }
 
 export function readRefreshCookie(cookies: Record<string, unknown>) {

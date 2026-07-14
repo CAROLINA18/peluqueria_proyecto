@@ -4,7 +4,7 @@ export type Locale = 'es' | 'en';
 export interface User {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: Role;
   preferredLocale: Locale;
   mustChangePassword: boolean;

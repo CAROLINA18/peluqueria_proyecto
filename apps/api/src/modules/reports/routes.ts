@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
 import { Prisma, Role } from '@prisma/client';
-import ExcelJS from 'exceljs';
 import { Router } from 'express';
 import PDFDocument from 'pdfkit';
 import { z } from 'zod';
@@ -10,6 +9,7 @@ import { AppError } from '../../http/errors.js';
 import { authenticate, requireRole } from '../../security/auth.js';
 import { audit } from '../../shared/audit.js';
 import { parseBusinessDate } from '../../shared/domain.js';
+import { createXlsx } from '../../shared/xlsx.js';
 
 export const reportsRouter = Router();
 reportsRouter.use(authenticate, requireRole(Role.ADMIN, Role.SENIOR_ASSISTANT));
@@ -18,8 +18,8 @@ type Period = 'day' | 'week' | 'month' | 'year' | 'custom';
 type Locale = 'es' | 'en';
 
 const labels = {
-  es: { report: 'Reporte de ventas', period: 'Periodo', generated: 'Generado', sales: 'Ventas', revenue: 'Ingresos', ticket: 'Ticket promedio', services: 'Servicios', payments: 'Pagos', users: 'Profesionales', summary: 'Resumen' },
-  en: { report: 'Sales report', period: 'Period', generated: 'Generated', sales: 'Sales', revenue: 'Revenue', ticket: 'Average ticket', services: 'Services', payments: 'Payments', users: 'Professionals', summary: 'Summary' },
+  es: { report: 'Reporte de ventas', period: 'Periodo', generated: 'Generado', sales: 'Ventas', revenue: 'Ingresos', ticket: 'Ticket promedio', services: 'Servicios', payments: 'Medios de pago', users: 'Ventas por usuario', summary: 'Resumen', total: 'Total' },
+  en: { report: 'Sales report', period: 'Period', generated: 'Generated', sales: 'Sales', revenue: 'Revenue', ticket: 'Average ticket', services: 'Services', payments: 'Payment methods', users: 'Sales by user', summary: 'Summary', total: 'Total' },
 };
 
 function addDays(date: Date, days: number) { const result = new Date(date); result.setUTCDate(result.getUTCDate() + days); return result; }
@@ -109,19 +109,39 @@ reportsRouter.get('/sales/export', async (req, res) => {
       doc.moveDown().fontSize(13).fillColor('#b76f3c').text(title);
       doc.fontSize(9).fillColor('#22201e');
       rows.slice(0, 30).forEach((row) => doc.text(`${row.name}  ·  ${row.count}  ·  ${row.total} EUR`));
+      doc.font('Helvetica-Bold').text(`${text.total}: ${report.summary.grossRevenue} EUR`).font('Helvetica');
     };
     section(text.services, report.byService); section(text.payments, report.byPayment); section(text.users, report.byUser);
     doc.end(); return;
   }
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = config.APP_BUSINESS_NAME; workbook.title = `${text.report} ${report.from} - ${report.to}`;
   const summaryName = locale === 'es' ? 'Resumen' : 'Summary';
-  const summary = workbook.addWorksheet(summaryName); summary.addRows([[config.APP_BUSINESS_NAME], [text.report], [`${text.period}:`, report.from, report.to], [], [text.sales, report.summary.salesCount], [text.services, report.summary.serviceUnits], [text.revenue, Number(report.summary.grossRevenue)], [text.ticket, Number(report.summary.averageTicket)]]);
-  summary.getColumn(1).width = 28; summary.getColumn(2).width = 18; summary.getCell('A1').font = { bold: true, size: 18, color: { argb: 'FFB76F3C' } };
-  const addSheet = (name: string, columns: Partial<ExcelJS.Column>[], rows: unknown[][]) => { const sheet = workbook.addWorksheet(name); sheet.columns = columns; sheet.addRows(rows); sheet.views = [{ state: 'frozen', ySplit: 1 }]; sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + columns.length)}1` }; sheet.getRow(1).font = { bold: true }; return sheet; };
-  addSheet(locale === 'es' ? 'Ventas' : 'Sales', [{ header: 'Folio', key: 'folio', width: 22 }, { header: locale === 'es' ? 'Fecha' : 'Date', key: 'date', width: 14 }, { header: locale === 'es' ? 'Profesional' : 'Professional', key: 'author', width: 24 }, { header: 'EUR', key: 'total', width: 14 }], report.sales.map((row) => [row.folio, row.businessDate, row.author, Number(row.total)]));
-  addSheet(locale === 'es' ? 'Servicios' : 'Services', [{ header: locale === 'es' ? 'Servicio' : 'Service', key: 'name', width: 30 }, { header: locale === 'es' ? 'Unidades' : 'Units', key: 'count', width: 12 }, { header: 'EUR', key: 'total', width: 14 }], report.byService.map((row) => [row.name, row.count, Number(row.total)]));
-  addSheet(locale === 'es' ? 'Pagos' : 'Payments', [{ header: locale === 'es' ? 'Medio' : 'Method', key: 'name', width: 30 }, { header: locale === 'es' ? 'Operaciones' : 'Operations', key: 'count', width: 14 }, { header: 'EUR', key: 'total', width: 14 }], report.byPayment.map((row) => [row.name.startsWith('=') ? `'${row.name}` : row.name, row.count, Number(row.total)]));
+  const xlsx = await createXlsx([
+    { name: summaryName, rows: [
+      [config.APP_BUSINESS_NAME], [text.report], [`${text.period}:`, report.from, report.to], [],
+      [text.sales, report.summary.salesCount], [text.services, report.summary.serviceUnits],
+      [text.revenue, Number(report.summary.grossRevenue)], [text.ticket, Number(report.summary.averageTicket)],
+    ] },
+    { name: locale === 'es' ? 'Ventas' : 'Sales', rows: [
+      ['Folio', locale === 'es' ? 'Fecha' : 'Date', locale === 'es' ? 'Profesional' : 'Professional', 'EUR'],
+      ...report.sales.map((row) => [row.folio, row.businessDate, row.author, Number(row.total)]),
+      [text.total, '', '', Number(report.summary.grossRevenue)],
+    ] },
+    { name: locale === 'es' ? 'Servicios' : 'Services', rows: [
+      [locale === 'es' ? 'Servicio' : 'Service', locale === 'es' ? 'Unidades' : 'Units', 'EUR'],
+      ...report.byService.map((row) => [row.name, row.count, Number(row.total)]),
+      [text.total, report.summary.serviceUnits, Number(report.summary.grossRevenue)],
+    ] },
+    { name: locale === 'es' ? 'Pagos' : 'Payments', rows: [
+      [locale === 'es' ? 'Medio' : 'Method', locale === 'es' ? 'Operaciones' : 'Operations', 'EUR'],
+      ...report.byPayment.map((row) => [row.name.startsWith('=') ? `'${row.name}` : row.name, row.count, Number(row.total)]),
+      [text.total, '', Number(report.summary.grossRevenue)],
+    ] },
+    { name: locale === 'es' ? 'Por usuario' : 'By user', rows: [
+      [locale === 'es' ? 'Usuario' : 'User', locale === 'es' ? 'Ventas' : 'Sales', 'EUR'],
+      ...report.byUser.map((row) => [row.name.startsWith('=') ? `'${row.name}` : row.name, row.count, Number(row.total)]),
+      [text.total, report.summary.salesCount, Number(report.summary.grossRevenue)],
+    ] },
+  ]);
   res.setHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); res.setHeader('content-disposition', `attachment; filename="${filename}"`);
-  await workbook.xlsx.write(res); res.end();
+  res.end(xlsx);
 });

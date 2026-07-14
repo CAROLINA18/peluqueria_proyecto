@@ -3,7 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import type { Locale } from './models';
 
 const es = {
-  appName: 'Lina Quirama Beauty Salon', login: 'Iniciar sesión', email: 'Correo electrónico', password: 'Contraseña', logout: 'Cerrar sesión',
+  appName: 'Lina Quirama Beauty Salon', login: 'Iniciar sesión', email: 'Correo electrónico', username: 'Nombre de usuario', password: 'Contraseña', logout: 'Cerrar sesión',
   dashboard: 'Inicio', newSale: 'Nueva venta', sales: 'Ventas', catalogs: 'Catálogos', users: 'Usuarios', reports: 'Reportes',
   welcome: 'Bienvenida', today: 'Hoy', mySalesToday: 'Mis ventas de hoy', quickActions: 'Acciones rápidas',
   businessDate: 'Fecha del servicio', service: 'Servicio', quantity: 'Cantidad', suggestedPrice: 'Precio sugerido', chargedPrice: 'Precio cobrado',
@@ -16,10 +16,11 @@ const es = {
   revenue: 'Ingresos', ticket: 'Ticket promedio', units: 'Servicios realizados', noData: 'Aún no hay datos para mostrar.', loading: 'Cargando…', retry: 'Reintentar',
   required: 'Completa los campos obligatorios.', priceReasonRequired: 'Escribe por qué cambiaste el precio precargado.', paymentsMismatch: 'La suma de pagos debe coincidir con el total.',
   language: 'Idioma', spanish: 'Español', english: 'English', search: 'Buscar', edit: 'Editar', activate: 'Activar', deactivate: 'Desactivar',
+  posted: 'Registrada', voided: 'Anulada', restore: 'Restaurar', resetPassword: 'Restablecer contraseña', newTemporaryPassword: 'Nueva contraseña temporal', cancel: 'Cancelar', confirmReset: 'Restablecer', passwordResetSuccess: 'Contraseña restablecida. El usuario deberá cambiarla al iniciar sesión.', editSale: 'Editar venta', updateSale: 'Guardar cambios', saleUpdated: 'Venta actualizada correctamente', salesByUser: 'Ventas por usuario', reportTotal: 'Total del reporte', operations: 'Operaciones',
 };
 
 const en: typeof es = {
-  appName: 'Lina Quirama Beauty Salon', login: 'Sign in', email: 'Email address', password: 'Password', logout: 'Sign out',
+  appName: 'Lina Quirama Beauty Salon', login: 'Sign in', email: 'Email address', username: 'Username', password: 'Password', logout: 'Sign out',
   dashboard: 'Home', newSale: 'New sale', sales: 'Sales', catalogs: 'Catalogs', users: 'Users', reports: 'Reports',
   welcome: 'Welcome', today: 'Today', mySalesToday: 'My sales today', quickActions: 'Quick actions',
   businessDate: 'Service date', service: 'Service', quantity: 'Quantity', suggestedPrice: 'Suggested price', chargedPrice: 'Charged price',
@@ -32,6 +33,7 @@ const en: typeof es = {
   revenue: 'Revenue', ticket: 'Average ticket', units: 'Services performed', noData: 'There is no data to display yet.', loading: 'Loading…', retry: 'Retry',
   required: 'Complete all required fields.', priceReasonRequired: 'Explain why you changed the prefilled price.', paymentsMismatch: 'Payments must match the total.',
   language: 'Language', spanish: 'Español', english: 'English', search: 'Search', edit: 'Edit', activate: 'Activate', deactivate: 'Deactivate',
+  posted: 'Posted', voided: 'Voided', restore: 'Restore', resetPassword: 'Reset password', newTemporaryPassword: 'New temporary password', cancel: 'Cancel', confirmReset: 'Reset', passwordResetSuccess: 'Password reset. The user must change it at next sign-in.', editSale: 'Edit sale', updateSale: 'Save changes', saleUpdated: 'Sale updated successfully', salesByUser: 'Sales by user', reportTotal: 'Report total', operations: 'Operations',
 };
 
 export type TranslationKey = keyof typeof es;

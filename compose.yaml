@@ -35,6 +35,7 @@ services:
       APP_DEFAULT_LOCALE: es
       APP_BUSINESS_NAME: Lina Quirama Beauty Salon
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@linaquirama.local}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-ChangeMe123!}
       WEB_DIST_PATH: /app/apps/web/dist/lq-beauty/browser
     ports:

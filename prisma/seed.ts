@@ -4,14 +4,15 @@ import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const email = (process.env.ADMIN_EMAIL ?? 'admin@linaquirama.local').trim();
+const username = (process.env.ADMIN_USERNAME ?? 'admin').trim();
 const password = process.env.ADMIN_INITIAL_PASSWORD ?? 'ChangeMe123!';
 
 async function main() {
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   const admin = await prisma.user.upsert({
-    where: { normalizedEmail: email.toLowerCase() },
-    update: {},
-    create: { name: 'Administración', email, normalizedEmail: email.toLowerCase(), passwordHash, role: Role.ADMIN, mustChangePassword: process.env.NODE_ENV === 'production' },
+    where: { normalizedUsername: username.toLowerCase() },
+    update: { username, normalizedUsername: username.toLowerCase() },
+    create: { name: 'Administración', username, normalizedUsername: username.toLowerCase(), email, normalizedEmail: email.toLowerCase(), passwordHash, role: Role.ADMIN, mustChangePassword: process.env.NODE_ENV === 'production' },
   });
 
   const categories = [
@@ -50,7 +51,7 @@ async function main() {
       create: { name, normalizedName: name.toLowerCase(), categoryId: categoryMap.get(category), suggestedPrice: price, createdById: admin.id, updatedById: admin.id },
     });
   }
-  console.log(`Seed listo. Administrador: ${email}`);
+  console.log(`Seed listo. Administrador: ${username}`);
 }
 
 main().finally(() => prisma.$disconnect());

@@ -32,7 +32,7 @@ export function parseBusinessDate(value: string) {
   return date;
 }
 
-export const publicUser = <T extends { passwordHash?: unknown; tokenVersion?: unknown }>(user: T) => {
-  const { passwordHash: _password, tokenVersion: _version, ...safe } = user;
+export const publicUser = <T extends { passwordHash?: unknown; tokenVersion?: unknown; email?: unknown; normalizedEmail?: unknown; normalizedUsername?: unknown }>(user: T) => {
+  const { passwordHash: _password, tokenVersion: _version, email: _email, normalizedEmail: _normalizedEmail, normalizedUsername: _normalizedUsername, ...safe } = user;
   return safe;
 };

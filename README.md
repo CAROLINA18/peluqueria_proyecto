@@ -2,6 +2,27 @@
 
 Aplicación bilingüe para administrar servicios, ventas y reportes de Lina Quirama Beauty Salon. Es un monolito modular: Angular 21 y Express 5 se entregan en una sola imagen; MySQL 8.4 conserva los datos en un volumen Docker.
 
+## Para un compañero: iniciar en un comando
+
+La guía completa está en [GUIA_EQUIPO.md](GUIA_EQUIPO.md).
+
+Para publicar el sistema en un servidor o plataforma cloud consulta [DESPLIEGUE_HOSTING.md](DESPLIEGUE_HOSTING.md).
+
+En Windows, con Docker Desktop iniciado:
+
+```powershell
+.\INICIAR_PROYECTO.ps1
+```
+
+En macOS/Linux:
+
+```bash
+chmod +x INICIAR_PROYECTO.sh
+./INICIAR_PROYECTO.sh
+```
+
+La instalación de dependencias locales es **opcional** porque Docker instala todo dentro de la imagen. Para preparar también el entorno de desarrollo se puede usar `-InstalarDependencias` en Windows o `--install-dependencies` en macOS/Linux.
+
 ## Capacidades incluidas
 
 - Login seguro con access token corto y refresh token rotatorio en cookie HttpOnly.
@@ -34,10 +55,10 @@ Abrir `http://localhost:8080`.
 
 Credenciales locales iniciales:
 
-- Correo: `admin@linaquirama.local`
+- Nombre de usuario: `admin`
 - Contraseña: `ChangeMe123!`
 
-Antes de desplegar, cambie `MYSQL_*`, `JWT_*`, `ADMIN_EMAIL` y `ADMIN_INITIAL_PASSWORD` en `.env`. La aplicación fuerza cambio de contraseña inicial cuando `NODE_ENV=production`.
+Antes de desplegar fuera de un equipo local, cambie `MYSQL_*`, `JWT_*`, `ADMIN_USERNAME` y `ADMIN_INITIAL_PASSWORD` en `.env`. La credencial incluida es exclusivamente de arranque y demostración.
 
 ## Desarrollo
 

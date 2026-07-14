@@ -7,9 +7,9 @@ COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY prisma prisma
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
-RUN npm run build
+RUN npm run build && npm prune --omit=dev
 
 FROM node:24.14.1-bookworm-slim AS runtime
 ENV NODE_ENV=production
@@ -21,6 +21,8 @@ RUN apt-get update \
     && useradd --system --gid nodeapp nodeapp
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json

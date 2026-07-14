@@ -19,11 +19,11 @@ import type { Locale } from '../core/models';
           <div class="eyebrow">Lina Quirama Beauty Salon</div>
           <h1>{{ i18n.t('login') }}</h1>
           <p class="muted">{{ i18n.locale() === 'es' ? 'Gestiona tu jornada con calma y claridad.' : 'Manage your day with calm and clarity.' }}</p>
-          <label>{{ i18n.t('email') }}<input type="email" name="email" [(ngModel)]="email" autocomplete="username" required></label>
+          <label>{{ i18n.t('username') }}<input type="text" name="username" [(ngModel)]="username" autocomplete="username" autocapitalize="none" required></label>
           <label>{{ i18n.t('password') }}<div class="password-field"><input [type]="showPassword() ? 'text' : 'password'" name="password" [(ngModel)]="password" autocomplete="current-password" required><button type="button" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">{{ showPassword() ? '◉' : '◎' }}</button></div></label>
           @if (error()) { <div class="alert error" role="alert">{{ error() }}</div> }
           <button class="button primary wide" [disabled]="loading()">{{ loading() ? i18n.t('loading') : i18n.t('login') }}</button>
-          <small class="demo-note">Demo: admin&#64;linaquirama.local · ChangeMe123!</small>
+          <small class="demo-note">Demo: admin · ChangeMe123!</small>
         </form>
       </section>
     </main>
@@ -31,8 +31,8 @@ import type { Locale } from '../core/models';
 })
 export class LoginComponent {
   readonly i18n = inject(I18nService); private auth = inject(AuthService); private router = inject(Router);
-  email = 'admin@linaquirama.local'; password = 'ChangeMe123!';
+  username = 'admin'; password = 'ChangeMe123!';
   readonly loading = signal(false); readonly error = signal(''); readonly showPassword = signal(false);
   setLocale(locale: Locale) { this.i18n.setLocale(locale); }
-  submit() { this.loading.set(true); this.error.set(''); this.auth.login(this.email, this.password).subscribe({ next: () => this.router.navigateByUrl('/dashboard'), error: (err) => { this.loading.set(false); this.error.set(err?.error?.title ?? 'No pudimos iniciar sesión'); } }); }
+  submit() { this.loading.set(true); this.error.set(''); this.auth.login(this.username, this.password).subscribe({ next: () => this.router.navigateByUrl('/dashboard'), error: (err) => { this.loading.set(false); this.error.set(err?.error?.title ?? 'No pudimos iniciar sesión'); } }); }
 }

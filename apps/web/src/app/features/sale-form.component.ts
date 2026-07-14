@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
@@ -12,7 +13,7 @@ interface PaymentForm { paymentMethodId: string; amount: string; reference: stri
 @Component({
   selector: 'lq-sale-form', imports: [FormsModule], changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="page-header"><div><div class="eyebrow">{{ i18n.t('sales') }}</div><h1>{{ i18n.t('newSale') }}</h1><p>{{ i18n.locale() === 'es' ? 'Añade los servicios realizados y cómo se pagaron.' : 'Add performed services and how they were paid.' }}</p></div></header>
+    <header class="page-header"><div><div class="eyebrow">{{ i18n.t('sales') }}</div><h1>{{ isEditing() ? i18n.t('editSale') : i18n.t('newSale') }}</h1><p>{{ i18n.locale() === 'es' ? (isEditing() ? 'Actualiza servicios, valores y medios de pago del registro.' : 'Añade los servicios realizados y cómo se pagaron.') : (isEditing() ? 'Update services, amounts and payment methods.' : 'Add performed services and how they were paid.') }}</p></div></header>
     @if (loading()) { <div class="skeleton-card">{{ i18n.t('loading') }}</div> } @else {
       <form (ngSubmit)="submit()" class="sale-layout">
         <div class="form-flow">
@@ -53,7 +54,7 @@ interface PaymentForm { paymentMethodId: string; amount: string; reference: stri
           <span class="eyebrow">{{ i18n.t('total') }}</span><strong>{{ i18n.formatMoney(total()) }}</strong>
           <div class="summary-line"><span>{{ i18n.t('payments') }}</span><b>{{ i18n.formatMoney(paid()) }}</b></div>
           <div class="summary-line" [class.mismatch]="Math.abs(remaining()) > 0.001"><span>{{ i18n.t('remaining') }}</span><b>{{ i18n.formatMoney(remaining()) }}</b></div>
-          <button class="button primary wide" [disabled]="saving() || total() <= 0">{{ saving() ? i18n.t('saving') : i18n.t('registerSale') }}</button>
+          <button class="button primary wide" [disabled]="saving() || total() <= 0">{{ saving() ? i18n.t('saving') : (isEditing() ? i18n.t('updateSale') : i18n.t('registerSale')) }}</button>
           <small>{{ i18n.locale() === 'es' ? 'El total se valida nuevamente en el servidor.' : 'The total is validated again on the server.' }}</small>
         </aside>
       </form>
@@ -61,12 +62,25 @@ interface PaymentForm { paymentMethodId: string; amount: string; reference: stri
   `,
 })
 export class SaleFormComponent implements OnInit {
-  readonly i18n = inject(I18nService); private api = inject(ApiService); private auth = inject(AuthService); private cdr = inject(ChangeDetectorRef);
+  readonly i18n = inject(I18nService); private api = inject(ApiService); private auth = inject(AuthService); private cdr = inject(ChangeDetectorRef); private route = inject(ActivatedRoute); private router = inject(Router);
   readonly services = signal<Service[]>([]); readonly paymentMethods = signal<PaymentMethod[]>([]); readonly loading = signal(true); readonly saving = signal(false); readonly error = signal(''); readonly success = signal('');
   readonly Math = Math;
+  readonly isEditing = signal(false);
+  private editId = '';
+  private editVersion = 0;
   businessDate = this.todayBelgium(); notes = '';
   items: ItemForm[] = [this.emptyItem()]; payments: PaymentForm[] = [{ paymentMethodId: '', amount: '', reference: '' }];
-  ngOnInit() { forkJoin({ services: this.api.get<{ data: Service[] }>('/catalogs/services'), methods: this.api.get<{ data: PaymentMethod[] }>('/catalogs/payment-methods') }).subscribe({ next: ({ services, methods }) => { this.services.set(services.data); this.paymentMethods.set(methods.data); this.loading.set(false); }, error: () => { this.error.set('No pudimos cargar los catálogos.'); this.loading.set(false); } }); }
+  ngOnInit() {
+    this.editId = this.route.snapshot.paramMap.get('id') ?? '';
+    this.isEditing.set(!!this.editId);
+    forkJoin({ services: this.api.get<{ data: Service[] }>('/catalogs/services'), methods: this.api.get<{ data: PaymentMethod[] }>('/catalogs/payment-methods') }).subscribe({
+      next: ({ services, methods }) => {
+        this.services.set(services.data); this.paymentMethods.set(methods.data);
+        if (this.editId) this.loadExistingSale(); else this.loading.set(false);
+      },
+      error: () => { this.error.set(this.i18n.locale() === 'es' ? 'No pudimos cargar los catálogos.' : 'Catalogs could not be loaded.'); this.loading.set(false); },
+    });
+  }
   assistantOnlyToday() { return this.auth.user()?.role === 'ASSISTANT'; }
   addItem() { this.items.push(this.emptyItem()); }
   removeItem(index: number) { this.items.splice(index, 1); this.syncSinglePayment(); }
@@ -84,7 +98,33 @@ export class SaleFormComponent implements OnInit {
     if (Math.abs(this.remaining()) > 0.001) { this.error.set(this.i18n.t('paymentsMismatch')); return; }
     this.saving.set(true);
     const body = { businessDate: this.businessDate, items: this.items.map(({ suggestedPrice: _s, ...item }) => item), payments: this.payments, notes: this.notes || null };
-    this.api.post<{ data: Sale }>('/sales', body, { 'Idempotency-Key': crypto.randomUUID() }).subscribe({ next: (result) => { this.saving.set(false); this.success.set(`${this.i18n.t('saleCreated')} · ${result.data.folio}`); this.items = [this.emptyItem()]; this.payments = [{ paymentMethodId: '', amount: '', reference: '' }]; this.notes = ''; this.cdr.markForCheck(); }, error: (err) => { this.saving.set(false); this.error.set(err?.error?.title ?? 'No pudimos registrar la venta.'); } });
+    const request = this.editId
+      ? this.api.put<{ data: Sale }>(`/sales/${this.editId}`, body, this.editVersion)
+      : this.api.post<{ data: Sale }>('/sales', body, { 'Idempotency-Key': crypto.randomUUID() });
+    request.subscribe({
+      next: (result) => {
+        this.saving.set(false);
+        if (this.editId) { this.success.set(this.i18n.t('saleUpdated')); this.editVersion = result.data.version; setTimeout(() => void this.router.navigate(['/sales']), 700); }
+        else { this.success.set(`${this.i18n.t('saleCreated')} · ${result.data.folio}`); this.items = [this.emptyItem()]; this.payments = [{ paymentMethodId: '', amount: '', reference: '' }]; this.notes = ''; }
+        this.cdr.markForCheck();
+      },
+      error: (err) => { this.saving.set(false); this.error.set(err?.error?.title ?? (this.i18n.locale() === 'es' ? 'No pudimos guardar la venta.' : 'The sale could not be saved.')); },
+    });
+  }
+  private loadExistingSale() {
+    this.api.get<{ data: Sale }>(`/sales/${this.editId}`).subscribe({
+      next: ({ data }) => {
+        if (data.status === 'VOIDED') { this.error.set(this.i18n.locale() === 'es' ? 'No se puede editar una venta anulada.' : 'A voided sale cannot be edited.'); this.loading.set(false); return; }
+        this.businessDate = data.businessDate.slice(0, 10); this.notes = data.notes ?? ''; this.editVersion = data.version;
+        this.items = data.items.map((item) => {
+          const current = this.services().find((service) => service.id === item.serviceId)?.suggestedPrice ?? item.suggestedUnitPriceSnapshot ?? '';
+          return { serviceId: item.serviceId, quantity: item.quantity, suggestedPrice: current, effectiveUnitPrice: item.effectiveUnitPrice, priceOverrideReason: item.priceOverrideReason ?? '' };
+        });
+        this.payments = data.payments.map((payment) => ({ paymentMethodId: payment.paymentMethodId, amount: payment.amount, reference: payment.reference ?? '' }));
+        this.loading.set(false); this.cdr.markForCheck();
+      },
+      error: (err) => { this.error.set(err?.error?.title ?? 'Error'); this.loading.set(false); },
+    });
   }
   private emptyItem(): ItemForm { return { serviceId: '', quantity: 1, suggestedPrice: '', effectiveUnitPrice: '', priceOverrideReason: '' }; }
   private todayBelgium() { const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); const get = (type: string) => parts.find((p) => p.type === type)?.value; return `${get('year')}-${get('month')}-${get('day')}`; }

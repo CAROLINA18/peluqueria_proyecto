@@ -191,3 +191,18 @@ salesRouter.post('/:id/void', requireRole(Role.ADMIN), async (req, res) => {
   });
   res.json({ data: serializeSale(sale) });
 });
+
+salesRouter.post('/:id/restore', requireRole(Role.ADMIN), async (req, res) => {
+  const current = await prisma.sale.findUnique({ where: { id: String(req.params.id) } });
+  if (!current) throw new AppError(404, 'SALE_NOT_FOUND', 'Venta no encontrada');
+  if (current.status === 'POSTED') throw new AppError(422, 'SALE_ALREADY_POSTED', 'La venta ya está registrada');
+  const sale = await prisma.$transaction(async (tx) => {
+    const updated = await tx.sale.update({
+      where: { id: current.id },
+      data: { status: 'POSTED', voidReason: null, voidedAt: null, voidedById: null, updatedById: req.auth!.userId, version: { increment: 1 } },
+    });
+    await audit(tx, { actorUserId: req.auth!.userId, action: 'SALE_RESTORED', entityType: 'SALE', entityId: updated.id, requestId: req.requestId, before: { status: current.status, reason: current.voidReason }, after: { status: updated.status } });
+    return updated;
+  });
+  res.json({ data: serializeSale(sale) });
+});

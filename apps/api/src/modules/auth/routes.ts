@@ -14,14 +14,14 @@ import {
 export const authRouter = Router();
 
 const loginSchema = z.object({
-  email: z.email().max(254),
+  username: z.string().trim().min(3).max(80),
   password: z.string().min(8).max(200),
 });
 
-const sessionUser = (user: { id: string; name: string; email: string; role: string; preferredLocale: Locale; mustChangePassword: boolean }) => ({
+const sessionUser = (user: { id: string; name: string; username: string; role: string; preferredLocale: Locale; mustChangePassword: boolean }) => ({
   id: user.id,
   name: user.name,
-  email: user.email,
+  username: user.username,
   role: user.role,
   preferredLocale: user.preferredLocale.toLowerCase(),
   mustChangePassword: user.mustChangePassword,
@@ -29,11 +29,11 @@ const sessionUser = (user: { id: string; name: string; email: string; role: stri
 
 authRouter.post('/login', async (req, res) => {
   const input = loginSchema.parse(req.body);
-  const user = await prisma.user.findUnique({ where: { normalizedEmail: normalize(input.email) } });
+  const user = await prisma.user.findUnique({ where: { normalizedUsername: normalize(input.username) } });
   const valid = user ? await argon2.verify(user.passwordHash, input.password) : false;
   if (!user || !valid || user.status !== 'ACTIVE') {
-    await audit(prisma, { action: 'LOGIN_FAILED', entityType: 'AUTH', requestId: req.requestId, metadata: { email: normalize(input.email) } });
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Correo o contraseña incorrectos');
+    await audit(prisma, { action: 'LOGIN_FAILED', entityType: 'AUTH', requestId: req.requestId, metadata: { username: normalize(input.username) } });
+    throw new AppError(401, 'INVALID_CREDENTIALS', 'Nombre de usuario o contraseña incorrectos');
   }
   const tokens = await issueSession(user, req.header('user-agent'));
   setRefreshCookie(res, tokens.refreshToken);
