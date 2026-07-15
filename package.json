@@ -20,6 +20,8 @@
     "db:studio": "prisma studio",
     "db:up": "docker compose -f compose.yaml -f compose.dev.yaml up -d db",
     "docker:up": "docker compose up --build -d",
+    "docker:rebuild": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/rebuild-container.ps1",
+    "docker:rebuild:no-cache": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/rebuild-container.ps1 -NoCache",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f app",
     "backup": "powershell -ExecutionPolicy Bypass -File scripts/backup.ps1",
