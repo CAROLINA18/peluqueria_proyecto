@@ -64,13 +64,20 @@ usersRouter.patch('/:id', async (req, res) => {
     if (activeAdmins <= 1) throw new AppError(422, 'LAST_ADMIN', 'No puedes desactivar o degradar al último administrador');
   }
   const passwordHash = input.password ? await argon2.hash(input.password, { type: argon2.argon2id }) : undefined;
-  const user = await prisma.user.update({ where: { id: current.id }, data: {
-    ...(input.name ? { name: input.name } : {}),
-    ...(input.username ? { username: input.username.trim(), normalizedUsername: normalize(input.username) } : {}),
-    ...(input.role ? { role: input.role } : {}),
-    ...(input.status ? { status: input.status, deactivatedAt: input.status === 'INACTIVE' ? new Date() : null, tokenVersion: { increment: 1 } } : {}),
-    ...(passwordHash ? { passwordHash, mustChangePassword: true, tokenVersion: { increment: 1 } } : {}),
-  } });
+  let user;
+  try {
+    const normalizedUsername = input.username ? normalize(input.username) : undefined;
+    user = await prisma.user.update({ where: { id: current.id }, data: {
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.username ? { username: input.username.trim(), normalizedUsername, email: `${normalizedUsername}@users.linaquirama.local`, normalizedEmail: `${normalizedUsername}@users.linaquirama.local` } : {}),
+      ...(input.role ? { role: input.role } : {}),
+      ...(input.status ? { status: input.status, deactivatedAt: input.status === 'INACTIVE' ? new Date() : null, tokenVersion: { increment: 1 } } : {}),
+      ...(passwordHash ? { passwordHash, mustChangePassword: true, tokenVersion: { increment: 1 } } : {}),
+    } });
+  } catch (error: any) {
+    if (error?.code === 'P2002') throw new AppError(409, 'USERNAME_EXISTS', 'Ya existe un usuario con ese nombre de usuario');
+    throw error;
+  }
   if (input.status === 'INACTIVE' || input.role || passwordHash) await prisma.authSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
   await audit(prisma, { actorUserId: req.auth!.userId, action: 'USER_UPDATED', entityType: 'USER', entityId: user.id, requestId: req.requestId, before: { name: current.name, username: current.username, role: current.role, status: current.status }, after: { name: user.name, username: user.username, role: user.role, status: user.status } });
   res.json({ data: publicUser(user) });

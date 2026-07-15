@@ -73,6 +73,7 @@ if (existsSync(webPath)) {
   app.use(express.static(webPath, { maxAge: isProduction ? '1d' : 0, index: false }));
   app.get('*splat', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/health/')) { next(); return; }
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.sendFile(resolve(webPath, 'index.html'));
   });
 }

@@ -22,6 +22,10 @@ export interface Report {
   period: string; from: string; to: string; currency: 'EUR';
   summary: { salesCount: number; serviceUnits: number; grossRevenue: string; averageTicket: string };
   byDay: ReportRow[]; byService: ReportRow[]; byPayment: ReportRow[]; byUser: ReportRow[];
-  sales: Array<{ id: string; folio: string; businessDate: string; author: string; total: string }>;
+  sales: Array<{
+    id: string; folio: string; businessDate: string; author: string; authorId: string; notes?: string | null; total: string;
+    items: Array<{ id: string; serviceId: string; name: string; quantity: number; suggestedUnitPrice: string; effectiveUnitPrice: string; unitDifference: string; lineTotal: string; priceOverrideReason?: string | null; position: number }>;
+    payments: Array<{ id: string; paymentMethodId: string; code: string; name: string; amount: string; reference?: string | null; position: number }>;
+  }>;
 }
 export interface ReportRow { id: string; name: string; total: string; count: number; }

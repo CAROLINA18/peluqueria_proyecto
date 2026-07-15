@@ -10,11 +10,11 @@ import type { Report, ReportRow } from '../core/models';
   selector: 'lq-reports', imports: [FormsModule, NgTemplateOutlet], changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="page-header"><div><div class="eyebrow">Lina Quirama Beauty Salon</div><h1>{{ i18n.t('reports') }}</h1><p>{{ i18n.locale() === 'es' ? 'Analiza ventas por usuario, servicio y medio de pago.' : 'Analyse sales by user, service and payment method.' }}</p></div><img class="header-seal" src="/brand/IMG-20260714-WA0010.jpg" alt="" width="88" height="88"></header>
-    <section class="panel report-filters">
+    <form class="panel report-filters" (ngSubmit)="load()" novalidate>
       <label class="field"><span>{{ i18n.t('period') }}</span><select [(ngModel)]="period" name="period"><option value="day">{{ i18n.t('day') }}</option><option value="month">{{ i18n.t('month') }}</option>@if (auth.user()?.role === 'ADMIN') { <option value="week">{{ i18n.t('week') }}</option><option value="year">{{ i18n.t('year') }}</option> }</select></label>
-      <label class="field"><span>{{ i18n.t('businessDate') }}</span><input type="date" [(ngModel)]="anchor" name="anchor"></label>
-      <button class="button primary" type="button" (click)="load()">{{ i18n.t('loadReport') }}</button>
-    </section>
+      <label class="field"><span>{{ i18n.t('businessDate') }}</span><input type="date" [(ngModel)]="anchor" name="anchor" [class.invalid]="submitted() && !validDate()">@if (submitted() && !validDate()) { <small class="field-error">{{ i18n.t('invalidDate') }}</small> }</label>
+      <button class="button primary" type="submit" [disabled]="loading()">{{ i18n.t('loadReport') }}</button>
+    </form>
     @if (loading()) { <div class="skeleton-card">{{ i18n.t('loading') }}</div> }
     @if (error()) { <div class="alert error" role="alert">{{ error() }}</div> }
     @if (report(); as data) {
@@ -37,11 +37,12 @@ import type { Report, ReportRow } from '../core/models';
 })
 export class ReportsComponent {
   readonly i18n = inject(I18nService); readonly auth = inject(AuthService); private api = inject(ApiService);
-  readonly report = signal<Report | null>(null); readonly loading = signal(false); readonly error = signal('');
+  readonly report = signal<Report | null>(null); readonly loading = signal(false); readonly error = signal(''); readonly submitted = signal(false); readonly downloading = signal(false);
   period = 'day'; anchor = this.today();
   constructor() { this.load(); }
-  load() { this.loading.set(true); this.error.set(''); this.api.get<{ data: Report }>('/reports/sales', { period: this.period, anchor: this.anchor }).subscribe({ next: (result) => { this.report.set(result.data); this.loading.set(false); }, error: (err) => { this.error.set(err?.error?.title ?? 'Error'); this.loading.set(false); } }); }
-  download(format: 'pdf' | 'xlsx') { this.api.download('/reports/sales/export', { format, period: this.period, anchor: this.anchor }).subscribe((response) => { const blob = response.body; if (!blob) return; const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `reporte-ventas-${this.anchor}.${format}`; link.click(); URL.revokeObjectURL(link.href); }); }
+  load() { this.submitted.set(true); this.error.set(''); if (!this.validDate()) { this.error.set(this.i18n.t('formErrorsTitle')); return; } this.loading.set(true); this.api.get<{ data: Report }>('/reports/sales', { period: this.period, anchor: this.anchor }).subscribe({ next: (result) => { this.report.set(result.data); this.loading.set(false); }, error: (err) => { this.error.set(err?.error?.title ?? 'Error'); this.loading.set(false); } }); }
+  download(format: 'pdf' | 'xlsx') { if (!this.validDate()) { this.submitted.set(true); this.error.set(this.i18n.t('formErrorsTitle')); return; } this.error.set(''); this.downloading.set(true); this.api.download('/reports/sales/export', { format, period: this.period, anchor: this.anchor }).subscribe({ next: (response) => { this.downloading.set(false); const blob = response.body; if (!blob) { this.error.set(this.i18n.locale() === 'es' ? 'No se pudo generar el archivo.' : 'The file could not be generated.'); return; } const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `reporte-ventas-${this.anchor}.${format}`; link.click(); URL.revokeObjectURL(link.href); }, error: (err) => { this.downloading.set(false); this.error.set(err?.error?.title ?? (this.i18n.locale() === 'es' ? 'No se pudo descargar el reporte.' : 'The report could not be downloaded.')); } }); }
+  validDate() { return /^\d{4}-\d{2}-\d{2}$/.test(this.anchor) && !Number.isNaN(Date.parse(`${this.anchor}T00:00:00Z`)); }
   asRows(rows: ReportRow[] | null | undefined) { return rows ?? []; }
   private today() { const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); const get = (type: string) => parts.find((part) => part.type === type)?.value; return `${get('year')}-${get('month')}-${get('day')}`; }
 }

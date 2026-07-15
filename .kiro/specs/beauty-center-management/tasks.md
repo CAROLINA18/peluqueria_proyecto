@@ -53,7 +53,7 @@ Cada bloque debe completarse con su prueba y documentación. No se avanza sobre 
 ## Fase 4 — Catálogos administrativos
 
 - [x] 4.1 Implementar repositorios/casos de uso/endpoints de servicios, categorías y medios de pago con normalización, orden y baja lógica. `[REQ-SVC-001, REQ-CAT-001]`
-- [ ] 4.2 Crear centro de catálogos admin responsive para buscar, crear, editar, ordenar, activar y desactivar opciones. `[REQ-SVC-001, REQ-CAT-001, REQ-NFR-001]`
+- [x] 4.2 Crear centro de catálogos admin responsive con formularios completos para buscar, crear, editar todos los campos, ordenar, activar y desactivar opciones mediante diálogos Angular accesibles. `[REQ-SVC-001, REQ-CAT-001, REQ-NFR-001]`
 - [ ] 4.3 Crear autocomplete de servicios y lista desplegable de medios de pago activos reutilizables en ventas. `[REQ-SVC-001, REQ-CAT-001]`
 - [ ] 4.4 Probar históricos con opciones inactivas/renombradas, duplicados, último medio activo, precios y permisos por rol. `[REQ-SVC-001, REQ-CAT-001]`
 
@@ -79,7 +79,7 @@ Cada bloque debe completarse con su prueba y documentación. No se avanza sobre 
 - [x] 6.2 Implementar DTO `ReportSnapshot` y reconciliación de líneas/pagos/total. `[REQ-REPORT-001]`
 - [x] 6.3 Crear pantalla con filtros, KPIs, desgloses, tabla accesible y estados vacíos. `[REQ-REPORT-001, REQ-NFR-001]`
 - [x] 6.4 Implementar PDF A4 con sello oficial y cabecera `Lina Quirama Beauty Salon`, paginación y datos del periodo. `[REQ-EXPORT-001, REQ-BRAND-001]`
-- [x] 6.5 Implementar XLSX de cuatro hojas, formatos y mitigación de formula injection. `[REQ-EXPORT-001]`
+- [x] 6.5 Ampliar el XLSX de cuatro hojas con resumen analítico y detalle cruzable por venta, usuario, servicio, precios y pagos, conservando formatos y mitigación de formula injection. `[REQ-EXPORT-001]`
 - [x] 6.6 Aplicar autorización/rate limit/auditoría a ambas exportaciones. `[REQ-EXPORT-001]`
 - [ ] 6.7 Probar igualdad UI/PDF/XLSX con datos, sin datos, anulaciones y bordes de periodo. `[REQ-REPORT-001, REQ-EXPORT-001]`
 - [x] 6.8 Traducir PDF/XLSX según preferencia y probar títulos, hojas, fechas e importes en `es` y `en`. `[REQ-I18N-001, REQ-EXPORT-001]`
@@ -94,6 +94,8 @@ Cada bloque debe completarse con su prueba y documentación. No se avanza sobre 
 - [x] 7.3 Derivar y aplicar tokens visuales de los logos, crear `BrandLogoComponent` y completar responsive, skeletons, vacíos y errores. `[REQ-BRAND-001, REQ-NFR-001]`
 - [x] 7.3.1 Validar contraste de todas las parejas de texto/fondo y estados interactivos antes de aprobar el tema. `[REQ-BRAND-001, REQ-NFR-001]`
 - [ ] 7.4 Ejecutar auditoría WCAG 2.2 AA automatizada y manual con teclado/lector. `[REQ-NFR-001]`
+- [x] 7.4.1 Sustituir todos los `alert`/`confirm`/`prompt` nativos por diálogos Angular accesibles y localizados. `[REQ-NFR-001, UX]`
+- [x] 7.4.2 Unificar validaciones por campo, resúmenes de error dentro del contexto activo y confirmaciones de éxito visibles en todos los formularios. `[REQ-NFR-001, UX]`
 - [ ] 7.5 Verificar budgets, lazy loading y p95 del entorno de referencia. `[REQ-NFR-002]`
 - [x] 7.6 Revisar textos en español, localización de EUR/fechas y mensajes de negocio. `[UX]`
 - [x] 7.7 Completar inglés, revisar expansión de textos, fallback, cambio en caliente y ausencia de claves visibles. `[REQ-I18N-001]`

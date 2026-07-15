@@ -10,9 +10,10 @@ import { money, normalize } from '../../shared/domain.js';
 export const catalogsRouter = Router();
 catalogsRouter.use(authenticate);
 
-const categoryInput = z.object({ name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).nullable().optional(), displayOrder: z.coerce.number().int().min(0).default(0) });
-const methodInput = z.object({ code: z.string().trim().min(2).max(50), name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).nullable().optional(), displayOrder: z.coerce.number().int().min(0).default(0) });
-const serviceInput = z.object({ name: z.string().trim().min(2).max(160), description: z.string().trim().max(500).nullable().optional(), categoryId: z.uuid().nullable().optional(), suggestedPrice: z.union([z.string(), z.number()]) });
+const catalogStatus = z.enum(['ACTIVE', 'INACTIVE']);
+const categoryInput = z.object({ name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).nullable().optional(), displayOrder: z.coerce.number().int().min(0).default(0), status: catalogStatus.optional() });
+const methodInput = z.object({ code: z.string().trim().min(2).max(50), name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).nullable().optional(), displayOrder: z.coerce.number().int().min(0).default(0), status: catalogStatus.optional() });
+const serviceInput = z.object({ name: z.string().trim().min(2).max(160), description: z.string().trim().max(500).nullable().optional(), categoryId: z.uuid().nullable().optional(), suggestedPrice: z.union([z.string(), z.number()]), status: catalogStatus.optional() });
 
 function isAdmin(role: Role) { return role === Role.ADMIN; }
 
@@ -24,14 +25,14 @@ catalogsRouter.get('/categories', async (req, res) => {
 catalogsRouter.post('/categories', requireRole(Role.ADMIN), async (req, res) => {
   const input = categoryInput.parse(req.body);
   try {
-    const data = await prisma.serviceCategory.create({ data: { ...input, normalizedName: normalize(input.name), createdById: req.auth!.userId, updatedById: req.auth!.userId } });
+    const data = await prisma.serviceCategory.create({ data: { ...input, normalizedName: normalize(input.name), deactivatedAt: input.status === 'INACTIVE' ? new Date() : null, createdById: req.auth!.userId, updatedById: req.auth!.userId } });
     await audit(prisma, { actorUserId: req.auth!.userId, action: 'CATEGORY_CREATED', entityType: 'SERVICE_CATEGORY', entityId: data.id, requestId: req.requestId, after: { name: data.name } });
     res.status(201).json({ data });
   } catch (error: any) { if (error?.code === 'P2002') throw new AppError(409, 'CATEGORY_EXISTS', 'Ya existe esa categoría'); throw error; }
 });
 
 catalogsRouter.patch('/categories/:id', requireRole(Role.ADMIN), async (req, res) => {
-  const input = categoryInput.partial().extend({ status: z.enum(['ACTIVE', 'INACTIVE']).optional() }).parse(req.body);
+  const input = categoryInput.partial().parse(req.body);
   const current = await prisma.serviceCategory.findUnique({ where: { id: String(req.params.id) } });
   if (!current) throw new AppError(404, 'CATEGORY_NOT_FOUND', 'Categoría no encontrada');
   const data = await prisma.serviceCategory.update({ where: { id: current.id }, data: { ...input, ...(input.name ? { normalizedName: normalize(input.name) } : {}), updatedById: req.auth!.userId, deactivatedAt: input.status === 'INACTIVE' ? new Date() : input.status === 'ACTIVE' ? null : undefined } });
@@ -47,14 +48,14 @@ catalogsRouter.get('/payment-methods', async (req, res) => {
 catalogsRouter.post('/payment-methods', requireRole(Role.ADMIN), async (req, res) => {
   const input = methodInput.parse(req.body);
   try {
-    const data = await prisma.paymentMethod.create({ data: { ...input, normalizedCode: normalize(input.code), normalizedName: normalize(input.name), createdById: req.auth!.userId, updatedById: req.auth!.userId } });
+    const data = await prisma.paymentMethod.create({ data: { ...input, normalizedCode: normalize(input.code), normalizedName: normalize(input.name), deactivatedAt: input.status === 'INACTIVE' ? new Date() : null, createdById: req.auth!.userId, updatedById: req.auth!.userId } });
     await audit(prisma, { actorUserId: req.auth!.userId, action: 'PAYMENT_METHOD_CREATED', entityType: 'PAYMENT_METHOD', entityId: data.id, requestId: req.requestId, after: { code: data.code, name: data.name } });
     res.status(201).json({ data });
   } catch (error: any) { if (error?.code === 'P2002') throw new AppError(409, 'PAYMENT_METHOD_EXISTS', 'Ya existe ese medio de pago'); throw error; }
 });
 
 catalogsRouter.patch('/payment-methods/:id', requireRole(Role.ADMIN), async (req, res) => {
-  const input = methodInput.partial().extend({ status: z.enum(['ACTIVE', 'INACTIVE']).optional() }).parse(req.body);
+  const input = methodInput.partial().parse(req.body);
   const current = await prisma.paymentMethod.findUnique({ where: { id: String(req.params.id) } });
   if (!current) throw new AppError(404, 'PAYMENT_METHOD_NOT_FOUND', 'Medio de pago no encontrado');
   if (current.status === 'ACTIVE' && input.status === 'INACTIVE' && await prisma.paymentMethod.count({ where: { status: 'ACTIVE' } }) <= 1) throw new AppError(422, 'LAST_PAYMENT_METHOD', 'Debe existir al menos un medio de pago activo');
@@ -71,14 +72,14 @@ catalogsRouter.get('/services', async (req, res) => {
 catalogsRouter.post('/services', requireRole(Role.ADMIN), async (req, res) => {
   const input = serviceInput.parse(req.body);
   try {
-    const data = await prisma.service.create({ data: { name: input.name, normalizedName: normalize(input.name), description: input.description, categoryId: input.categoryId, suggestedPrice: money(input.suggestedPrice), createdById: req.auth!.userId, updatedById: req.auth!.userId }, include: { category: true } });
+    const data = await prisma.service.create({ data: { name: input.name, normalizedName: normalize(input.name), description: input.description, categoryId: input.categoryId, suggestedPrice: money(input.suggestedPrice), status: input.status, deactivatedAt: input.status === 'INACTIVE' ? new Date() : null, createdById: req.auth!.userId, updatedById: req.auth!.userId }, include: { category: true } });
     await audit(prisma, { actorUserId: req.auth!.userId, action: 'SERVICE_CREATED', entityType: 'SERVICE', entityId: data.id, requestId: req.requestId, after: { name: data.name, price: data.suggestedPrice.toFixed(2) } });
     res.status(201).json({ data: { ...data, suggestedPrice: data.suggestedPrice.toFixed(2) } });
   } catch (error: any) { if (error?.code === 'P2002') throw new AppError(409, 'SERVICE_EXISTS', 'Ya existe ese servicio'); throw error; }
 });
 
 catalogsRouter.patch('/services/:id', requireRole(Role.ADMIN), async (req, res) => {
-  const input = serviceInput.partial().extend({ status: z.enum(['ACTIVE', 'INACTIVE']).optional() }).parse(req.body);
+  const input = serviceInput.partial().parse(req.body);
   const current = await prisma.service.findUnique({ where: { id: String(req.params.id) } });
   if (!current) throw new AppError(404, 'SERVICE_NOT_FOUND', 'Servicio no encontrado');
   const data = await prisma.service.update({ where: { id: current.id }, data: {

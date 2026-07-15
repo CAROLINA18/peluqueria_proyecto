@@ -43,7 +43,7 @@ Las palabras **DEBE**, **NO DEBE**, **DEBERÍA** y **PUEDE** son normativas.
 
 **Criterios de aceptación:**
 
-1. EL ADMINISTRADOR DEBE poder listar, buscar, crear y editar usuarios con nombre, correo y rol `ADMIN`, `SENIOR_ASSISTANT` o `ASSISTANT`.
+1. EL ADMINISTRADOR DEBE poder listar, buscar, crear y editar toda la información administrable de un usuario: nombre, identificador de acceso, correo cuando aplique, rol `ADMIN`, `SENIOR_ASSISTANT` o `ASSISTANT` y estado.
 2. AL crear un usuario, EL SISTEMA DEBE exigir contraseña temporal robusta o generarla y forzar cambio en el primer acceso.
 3. EL SISTEMA DEBE rechazar correos duplicados sin distinguir mayúsculas/minúsculas.
 4. EL ADMINISTRADOR DEBE poder activar o desactivar una cuenta sin borrarla físicamente.
@@ -57,7 +57,7 @@ Las palabras **DEBE**, **NO DEBE**, **DEBERÍA** y **PUEDE** son normativas.
 
 **Criterios de aceptación:**
 
-1. EL ADMINISTRADOR DEBE poder listar, buscar, crear y editar nombre, categoría opcional, descripción opcional, precio sugerido y estado.
+1. EL ADMINISTRADOR DEBE poder listar, buscar, crear y editar toda la información administrable de un servicio: nombre, categoría opcional, descripción opcional, precio sugerido y estado.
 2. EL nombre activo DEBE ser único normalizando espacios y mayúsculas/minúsculas.
 3. EL precio sugerido DEBE ser mayor que cero, usar la moneda configurada y aceptar como máximo los decimales admitidos por ella.
 4. UN servicio referenciado DEBE desactivarse, no eliminarse físicamente.
@@ -80,6 +80,7 @@ Las palabras **DEBE**, **NO DEBE**, **DEBERÍA** y **PUEDE** son normativas.
 7. SOLO el administrador DEBE consultar la vista administrativa o mutar estos catálogos; senior y asistente solo reciben opciones activas necesarias para registrar ventas.
 8. ROLES, estados de venta y estados de usuario NO DEBEN ser catálogos editables porque forman parte de las reglas de seguridad e integridad.
 9. TODA mutación DEBE quedar auditada.
+10. LOS formularios de alta y edición DEBEN exponer todos los campos administrables del tipo de catálogo, incluidos descripción y orden para categorías y medios de pago, código para medios de pago y categoría, descripción y precio para servicios.
 
 ### REQ-SALE-001 — Crear venta (Must)
 
@@ -161,12 +162,13 @@ Las palabras **DEBE**, **NO DEBE**, **DEBERÍA** y **PUEDE** son normativas.
 1. EL SISTEMA DEBE exportar exactamente el rango y filtros activos a PDF y XLSX.
 2. EL PDF DEBE mostrar el sello oficial `IMG-20260714-WA0010.jpg` y `Lina Quirama Beauty Salon` como identidad corporativa en su cabecera e incluir periodo, generación, usuario generador, KPIs, desgloses, moneda y numeración de páginas.
 3. EL XLSX DEBE incluir cuatro hojas localizadas —`Resumen`, `Ventas`, `Servicios`, `Pagos` en español o `Summary`, `Sales`, `Services`, `Payments` en inglés—, encabezados congelados, filtros y tipos numéricos/fecha correctos.
-4. EL libro XLSX DEBE identificar a `Lina Quirama Beauty Salon` en la hoja de resumen y en sus propiedades de documento.
-5. LOS archivos DEBEN usar nombre seguro `reporte-ventas-AAAA-MM-DD_aaaa-mm-dd.ext` y descargarse con MIME correcto.
-6. EL XLSX DEBE neutralizar formula injection en valores de texto controlables por usuarios.
-7. UNA exportación DEBE respetar permisos, tener rate limit y quedar auditada con filtros, no con el contenido completo.
-8. SI la generación falla, EL SISTEMA DEBE mostrar error recuperable y no entregar un archivo parcial.
-9. EL SENIOR DEBE descargar únicamente reportes diarios o mensuales; EL ADMINISTRADOR DEBE descargar todos los periodos autorizados.
+4. LA hoja de resumen DEBE incluir KPIs y desgloses por día, usuario, servicio y medio de pago; LA hoja de ventas DEBE identificar cada venta, su usuario, total, servicios y pagos; LA hoja de servicios DEBE detallar por línea la cantidad, precio sugerido, precio efectivo, diferencia, subtotal, motivo de cambio, usuario y medios de pago de la venta; LA hoja de pagos DEBE detallar cada pago con venta, usuario, código, medio, referencia, importe, total de venta y servicios asociados.
+5. EL libro XLSX DEBE identificar a `Lina Quirama Beauty Salon` en la hoja de resumen y en sus propiedades de documento.
+6. LOS archivos DEBEN usar nombre seguro `reporte-ventas-AAAA-MM-DD_aaaa-mm-dd.ext` y descargarse con MIME correcto.
+7. EL XLSX DEBE neutralizar formula injection en valores de texto controlables por usuarios.
+8. UNA exportación DEBE respetar permisos, tener rate limit y quedar auditada con filtros, no con el contenido completo.
+9. SI la generación falla, EL SISTEMA DEBE mostrar error recuperable y no entregar un archivo parcial.
+10. EL SENIOR DEBE descargar únicamente reportes diarios o mensuales; EL ADMINISTRADOR DEBE descargar todos los periodos autorizados.
 
 ### REQ-AUDIT-001 — Consulta de auditoría (Should)
 
@@ -233,6 +235,10 @@ Las palabras **DEBE**, **NO DEBE**, **DEBERÍA** y **PUEDE** son normativas.
 3. LA interfaz DEBE cumplir WCAG 2.2 AA, navegación por teclado, foco visible y objetivos táctiles de 44 px.
 4. TODA operación asíncrona DEBE tener estados de carga, vacío, error y éxito apropiados.
 5. EL sistema DEBE advertir pérdida de cambios y prevenir doble envío.
+6. LA aplicación NO DEBE usar `window.alert`, `window.confirm` ni `window.prompt`; confirmaciones, solicitudes de motivo y formularios emergentes DEBEN implementarse como diálogos Angular accesibles, localizados, con foco contenido y restaurado.
+7. TODO formulario DEBE mostrar el error junto al campo afectado después de la interacción o del intento de envío, marcar el control inválido mediante atributos accesibles y presentar un resumen visible dentro del formulario o diálogo, nunca detrás de una ventana emergente.
+8. LAS validaciones nativas bloqueantes del navegador NO DEBEN sustituir los mensajes Angular localizados; el foco DEBE desplazarse al resumen o al primer control inválido cuando el usuario intenta enviar datos incorrectos.
+9. LAS operaciones exitosas relevantes DEBEN mostrar confirmación visible y localizada. Al registrar una venta, la confirmación DEBE ser un diálogo Angular destacado con folio, total y acciones para registrar otra venta o ir al listado.
 
 ### REQ-NFR-002 — Rendimiento (Must)
 

@@ -312,7 +312,7 @@ El exportador recibe además el `preferredLocale` del actor autenticado; no conf
 
 - PDF: A4, cabecera, filtros, KPIs, tablas paginadas, pie y aviso de moneda.
 - La cabecera PDF usa el sello `logos/IMG-20260714-WA0010.jpg` junto al texto `Lina Quirama Beauty Salon`; la dirección es opcional y su ausencia no deja espacios vacíos.
-- XLSX: identifica a `Lina Quirama Beauty Salon` en resumen/propiedades, usa valores de dinero numéricos con formato de moneda, fechas como fechas, texto neutralizado, filtros y panel congelado.
+- XLSX: identifica a `Lina Quirama Beauty Salon` en resumen/propiedades, usa valores de dinero numéricos con formato de moneda, fechas como fechas, texto neutralizado, filtros y panel congelado. Conserva exactamente cuatro hojas localizadas: resumen analítico con KPIs y desgloses, ventas a nivel de cabecera, servicios a nivel de línea y pagos a nivel de asignación. Las tres hojas de detalle comparten folio, fecha y usuario para permitir cruces; servicios incluye precio sugerido/efectivo, diferencia, subtotal, motivo y medios de la venta, mientras pagos incluye código, medio, referencia, importe, total y servicios asociados.
 - Para el volumen del MVP, respuesta síncrona con streaming y timeout controlado. Si supera el límite futuro, requerirá otra spec para jobs asíncronos.
 
 ## 10. Frontend
@@ -332,6 +332,10 @@ El exportador recibe además el `preferredLocale` del actor autenticado; no conf
 - `/audit`
 
 Cada ruta declara capacidades y se lazy-load. Los guards orientan navegación; el interceptor trata `401`, refresh único concurrente y errores problem+json.
+
+Los formularios emergentes y confirmaciones se implementan mediante componentes/plantillas Angular accesibles. No se invocan los diálogos nativos bloqueantes del navegador (`alert`, `confirm`, `prompt`). El diálogo atrapa el foco, cierra mediante una acción explícita o `Escape` cuando no hay una operación en curso y restaura el foco al control que lo abrió.
+
+Los formularios Angular mantienen estado de intento de envío y errores por campo. Cada control inválido expone `aria-invalid`, enlaza su mensaje mediante `aria-describedby` y conserva una ayuda breve junto al campo. Un resumen con `role="alert"` aparece al inicio del contexto activo y recibe foco cuando corresponde. Los errores de API se muestran en el mismo formulario o diálogo que originó la solicitud. Las confirmaciones de operaciones principales usan un diálogo accesible; para ventas incluye folio, total y siguientes acciones, sin temporizadores que oculten información antes de que el usuario la lea.
 
 ### Internacionalización
 
